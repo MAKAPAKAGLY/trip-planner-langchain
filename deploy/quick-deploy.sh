@@ -79,11 +79,11 @@ if grep -q "sk-your-key-here\|your-amap-key-here\|your-unsplash-key-here" "$SCRI
 fi
 echo "✅ 环境变量已配置"
 
-# 4. 检查端口占用
+# 4. 检查端口占用（只检查 LISTEN 状态，忽略出站连接）
 echo ""
 echo "[4/6] 检查端口占用..."
-PORT80_PID=$(lsof -t -i :80 2>/dev/null || true)
-PORT8000_PID=$(lsof -t -i :8000 2>/dev/null || true)
+PORT80_PID=$(lsof -t -i :80 -sTCP:LISTEN 2>/dev/null || true)
+PORT8000_PID=$(lsof -t -i :8000 -sTCP:LISTEN 2>/dev/null || true)
 
 if [ -n "$PORT80_PID" ]; then
     # 检查是否是自己的容器
@@ -92,7 +92,7 @@ if [ -n "$PORT80_PID" ]; then
         cd "$SCRIPT_DIR" && docker compose down
     else
         echo "❌ 端口 80 被其他进程占用:"
-        lsof -i :80
+        lsof -i :80 -sTCP:LISTEN
         exit 1
     fi
 fi
@@ -103,7 +103,7 @@ if [ -n "$PORT8000_PID" ]; then
         cd "$SCRIPT_DIR" && docker compose down
     else
         echo "❌ 端口 8000 被其他进程占用:"
-        lsof -i :8000
+        lsof -i :8000 -sTCP:LISTEN
         exit 1
     fi
 fi
