@@ -40,11 +40,3 @@ services:
       # 前端运行时直接请求后端（CORS 已在后端配置 allow_origins=["*"]）
       - key: VITE_API_BASE_URL
         value: https://trip-planner-backend.onrender.com/api
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html       # SPA fallback
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache
