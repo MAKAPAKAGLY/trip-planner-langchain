@@ -1,0 +1,50 @@
+# ========================================
+# Render 一键部署配置
+# 1. 把这个文件放在项目根目录
+# 2. 推送代码到 GitHub
+# 3. 在 Render Dashboard 点 "New → Blueprint" 选 GitHub 仓库
+#    或者分别创建 Web Service + Static Site
+# ========================================
+
+services:
+  # ── 后端 FastAPI ──
+  - name: trip-planner-backend
+    type: web
+    runtime: python
+    region: singapore         # 亚洲延迟低
+    plan: free                # 免费（15分钟无请求自动休眠，下次请求冷启动 ~30s）
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_API_KEY
+        sync: false           # 在 Dashboard 手动填密钥
+      - key: LLM_BASE_URL
+        sync: false
+      - key: LLM_MODEL
+        value: gpt-4o
+      - key: AMAP_API_KEY
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.10"
+
+  # ── 前端 Vue 3 静态站 ──
+  - name: trip-planner-frontend
+    type: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_AMAP_WEB_KEY
+        sync: false
+      # 前端运行时直接请求后端（CORS 已在后端配置 allow_origins=["*"]）
+      - key: VITE_API_BASE_URL
+        value: https://trip-planner-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html       # SPA fallback
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache

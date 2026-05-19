@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+    container_name: trip-planner-backend
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - AMAP_API_KEY=${AMAP_API_KEY}
+      - UNSPLASH_ACCESS_KEY=${UNSPLASH_ACCESS_KEY}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - trip-planner-net
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+      args:
+        - VITE_AMAP_WEB_KEY=${VITE_AMAP_WEB_KEY}
+    container_name: trip-planner-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - trip-planner-net
+
+networks:
+  trip-planner-net:
+    driver: bridge
