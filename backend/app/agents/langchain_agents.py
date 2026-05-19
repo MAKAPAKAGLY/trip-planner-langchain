@@ -159,6 +159,11 @@ def build_agent(
         base_url=base_url,
         temperature=temperature,
         max_tokens=max_tokens,
+        # DeepSeek thinking 模式需要 reasoning_content 回传，LangChain 目前不支持
+        # 关闭 thinking 模式避免 400 错误
+        model_kwargs={
+            "extra_body": {"thinking": {"type": "disabled"}},
+        },
     )
 
     agent = create_agent(
