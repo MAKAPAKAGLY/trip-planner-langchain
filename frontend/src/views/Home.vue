@@ -124,7 +124,7 @@ const handleSubmit = async () => {
     setTimeout(() => {
       router.push({
         name: 'result',
-        state: { tripPlan: response },
+        state: { tripPlan: response as any },
       })
     }, 500)
   } catch (error: any) {
