@@ -56,20 +56,21 @@ async def create_trip_plan(request: TripPlanRequest) -> TripPlan:
             for attraction in day.attractions:
                 if not attraction.image_url:
                     try:
-                        # 先用景点名+城市搜索
+                        # 1. 景点名+城市（最精准）
                         image_url = unsplash.get_photo_url(
                             f"{attraction.name} {trip_plan.city}"
                         )
-                        # 没找到则用类别+城市宽泛搜索
+                        # 2. 景点名单独搜
+                        if not image_url:
+                            image_url = unsplash.get_photo_url(
+                                f"{attraction.name}"
+                            )
+                        # 3. 类别+城市（稍宽泛）
                         if not image_url and attraction.category:
                             image_url = unsplash.get_photo_url(
                                 f"{attraction.category} {trip_plan.city} travel"
                             )
-                        # 还找不到就只用城市名
-                        if not image_url:
-                            image_url = unsplash.get_photo_url(
-                                f"{trip_plan.city} travel landmark"
-                            )
+                        # 不再做城市级别的泛搜 —— 容易返回不相关图片
                         if image_url:
                             attraction.image_url = image_url
                             image_count += 1
