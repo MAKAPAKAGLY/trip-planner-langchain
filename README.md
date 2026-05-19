@@ -214,63 +214,68 @@ npm run dev
 
 ## 部署指南
 
-### 方式一：Docker Compose（推荐）
+项目通过 GitHub + Docker Compose 部署到阿里云 ECS。前端在本地构建，dist 随代码一起推送到 GitHub，服务器 git pull 后直接挂载使用（服务器无需 Node.js）。
 
-项目在 `deploy/` 目录下提供了 Docker 部署配置：
+> 完整的分步教程：[deploy/DEPLOY_GUIDE.md](deploy/DEPLOY_GUIDE.md)
+
+### 部署流程概览
 
 ```
-deploy/
-├── backend.Dockerfile      # 后端镜像
-├── frontend.Dockerfile     # 前端镜像（构建 + Nginx）
-├── nginx.conf              # Nginx 反向代理配置
-├── docker-compose.yml      # 一键编排
-└── .env.example            # 环境变量模板
+本地:  npm run build → git push
+                        ↓
+服务器: git pull → docker compose up -d
 ```
 
-**部署步骤：**
+### 本机操作（每次修改前端后）
 
 ```bash
-# 1. 进入 deploy 目录
+# 1. 构建前端
+cd frontend && npm run build && cd ..
+
+# 2. 推送代码（包含 dist/）
+git add . && git commit -m "deploy" && git push
+```
+
+### 服务器操作（首次部署）
+
+```bash
+# 1. 克隆项目
+git clone <你的仓库地址> && cd helloagents-trip-planner-langchain/deploy
+
+# 2. 配置密钥
+cp .env.example .env && nano .env
+
+# 3. 一键启动
+chmod +x quick-deploy.sh && ./quick-deploy.sh
+```
+
+### 服务器操作（日常更新）
+
+```bash
+cd ~/helloagents-trip-planner-langchain
+git pull
 cd deploy
 
-# 2. 复制环境变量模板并填写
-cp .env.example .env
+# 只改了前端 → 重启前端容器
+docker compose restart frontend
 
-# 3. 编辑 .env，填入你的 API 密钥
-#    （LLM_API_KEY、AMAP_API_KEY、UNSPLASH_ACCESS_KEY、VITE_AMAP_WEB_KEY）
-
-# 4. 一键启动
-docker-compose up -d
-
-# 5. 访问 http://服务器IP 即可使用
+# 改了后端 → 重新构建
+docker compose up -d --build backend
 ```
 
-后端运行在 `http://localhost:8000`，Nginx 自动将 `/api/` 请求转发到后端。
+### 部署文件一览
 
-### 方式二：手动部署（无 Docker）
+| 文件 | 说明 |
+|------|------|
+| `deploy/DEPLOY_GUIDE.md` | 详细部署文档（分步教程 + 架构图 + 故障排查） |
+| `deploy/quick-deploy.sh` | 服务器端一键部署脚本 |
+| `deploy/docker-compose.yml` | 容器编排（后端 Docker 构建 + 前端挂载 dist） |
+| `deploy/backend.Dockerfile` | 后端 Python 镜像 |
+| `deploy/frontend.Dockerfile` | 前端多阶段构建镜像（备选，服务器无 Node 时不用） |
+| `deploy/nginx.conf` | Nginx 反向代理 + SPA 路由 |
+| `deploy/.env.example` | 环境变量模板 |
 
-**后端：**
-
-```bash
-cd backend
-pip install -r requirements.txt
-
-# 确保 .env 文件配置了 API 密钥
-python run.py
-```
-
-**前端：**
-
-```bash
-cd frontend
-npm install
-npm run build      # 构建产物在 dist/ 目录
-
-# 用任意静态服务器部署 dist/ 目录
-# 建议用 Nginx 配置反向代理 /api/ → 后端地址
-```
-
-### 环境变量（生产环境必填）
+### 环境变量
 
 | 变量 | 说明 |
 |------|------|
@@ -278,14 +283,9 @@ npm run build      # 构建产物在 dist/ 目录
 | `LLM_BASE_URL` | LLM API 地址 |
 | `LLM_MODEL` | 模型名称 |
 | `AMAP_API_KEY` | 高德地图 Web 服务 Key |
+| `AMAP_WEB_KEY` | 高德地图 Key（后端用） |
 | `UNSPLASH_ACCESS_KEY` | Unsplash 图片 Key |
-| `VITE_AMAP_WEB_KEY` | 高德地图 Web JS Key（前端用） |
-
-### 云服务器推荐
-
-- **国内**：阿里云 ECS（2核4G 够用）、腾讯云轻量服务器
-- **海外**：AWS Lightsail、DigitalOcean Droplet（$6/月）
-- **Serverless**：Render.com 免费版（适合快速展示）
+| `VITE_AMAP_WEB_KEY` | 高德地图 Web JS Key（前端构建时注入） |
 
 ## License
 
